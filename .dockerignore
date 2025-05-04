@@ -1,0 +1,9 @@
+# .dockerignore
+__pycache__/
+.git/
+.github/
+.venv/
+*.pyc
+README.md
+LICENSE
+tests/

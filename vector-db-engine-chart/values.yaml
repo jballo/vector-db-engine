@@ -1,0 +1,24 @@
+# Default values for vector-db-engine-chart.
+# This is a YAML-formatted file.
+
+existingSecret: true
+
+replicaCount: 1
+
+image:
+  repository: jballo/vector-db-engine
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+# internal container port where FastAPI listens
+containerPort: 8000
+
+hpa:
+  enabled: false
+
+ingress:
+  enabled: false
