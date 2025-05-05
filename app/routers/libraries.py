@@ -3,7 +3,8 @@ from typing import List
 from uuid import uuid4, UUID
 
 from ..dependencies import get_key_header
-from .chunks import router as chunks_router
+# from .chunks import router as chunks_router
+from .documents import router as documents_router
 from ..models.library import Library, LibraryCreate, LibraryUpdate
 from ..models.search import SearchRequest, SearchResult
 
@@ -15,7 +16,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-router.include_router(chunks_router)
+router.include_router(documents_router)
 
 
 # simple in-memory store

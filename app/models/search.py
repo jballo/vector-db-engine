@@ -2,6 +2,7 @@ from uuid import UUID
 from typing import List, Literal, Dict, Any, Optional
 from pydantic import BaseModel, Field, model_validator, ValidationError, conlist
 from .chunk import Chunk
+from .library import Library
 
 class SearchRequest(BaseModel):
     """Paylod for a kNN search"""
@@ -41,6 +42,7 @@ class SearchRequest(BaseModel):
                 )
         
         return model
+
 
 class SearchResult(BaseModel):
     """One hit from a search"""
