@@ -12,14 +12,13 @@ def search_library_service(
     query_embedding: List[float],
     k: int,
     metric: str = "cosine",
-    metadata_filter: dict = None,
     algorithm: str = "brute",
 ) -> List[SearchResult]:
     candidates = list_all_chunks_in_library(library_id)
     if not candidates:
         return []
     
-    return _run_knn(candidates, query_embedding, k, metric, metadata_filter, algorithm)
+    return _run_knn(candidates, query_embedding, k, metric, algorithm)
 
 
 def search_document_service(
@@ -28,7 +27,6 @@ def search_document_service(
     query_embedding: List[float],
     k: int,
     metric: str = "cosine",
-    metadata_filter: dict = None,
     algorithm: str = "brute",
 ) -> List[SearchResult]:
     candidates = list_chunks(library_id, document_id)
@@ -36,7 +34,7 @@ def search_document_service(
     if not candidates:
         return []
     
-    return _run_knn(candidates, query_embedding, k, metric, metadata_filter, algorithm)
+    return _run_knn(candidates, query_embedding, k, metric, algorithm)
 
 
 def _run_knn(
@@ -44,7 +42,6 @@ def _run_knn(
     query_embedding: List[float],
     k: int,
     metric: str,
-    metadata_filter: dict = None,
     algorithm: str = "brute",
 ) -> List[SearchResult]:
     # exact match metadata filter
@@ -57,9 +54,6 @@ def _run_knn(
     metric_fn: Callable = cosine_similarity if metric == "cosine" else l2_distance
 
     prepared = [(chunk.id, chunk.embedding, chunk) for chunk in chunks]
-
-    # raw_hits = brute_force_knn(query_embedding, prepared, k, metric_fn)
-    # print("raw_hits: ", raw_hits)
 
     # dispatch on algorithm
     raw_hits = []

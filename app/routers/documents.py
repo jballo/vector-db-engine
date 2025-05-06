@@ -128,7 +128,6 @@ async def search_document(
             query_embedding=payload.query_embedding,
             k=payload.k,
             metric=payload.metric,
-            metadata_filter=payload.filter,
             algorithm=payload.algorithm
         )
     except KeyError as e:
