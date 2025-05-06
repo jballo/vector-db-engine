@@ -4,14 +4,18 @@ A FastAPI service that lets users create, read, update, and delete document libr
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)  
-2. [Local Development](#local-development)  
-3. [Docker](#docker)  
-4. [Kubernetes + Helm Deployment](#kubernetes--helm-deployment)  
-5. [Rotating the API Key](#rotating-the-api-key)  
-6. [Cleanup](#cleanup)  
-7. [Project Structure](#project-structure)  
-8. [License](#license)  
+1. Prerequisites 
+2. Local Development
+3. Docker
+4. Kubernetes + Helm Deployment 
+5. Rotating the API Key 
+6. Cleanup 
+7. In-Memory Store & Concurrency
+8. Pydantic Models & Validation
+9. Service Layer
+10. Search Algorithms
+11. Error Handling & HTTP Semantics
+12. Trade-offs & Future Work
 
 ---
 
@@ -168,41 +172,60 @@ We inject the API key at runtime via a pre-created Kubernetes Secret.
 
 
 ## Project Structure
-.
-├── app
-│   ├── __init__.py
-│   ├── config.py
-│   ├── dependencies.py
-│   ├── main.py
-│   ├── models
-│   │   ├── chunk.py
-│   │   ├── document.py
-│   │   ├── library.py
-│   │   └── search.py
-│   ├── routers
-│   │   ├── __init__.py
-│   │   ├── chunks.py
-│   │   ├── documents.py
-│   │   ├── health.py
-│   │   └── libraries.py
-│   ├── service
-│   │   ├── chunk_service.py
-│   │   ├── document_service.py
-│   │   ├── library_service.py
-│   │   └── search_service.py
-│   ├── store
-│   │   └── in_memory.py
-│   └── utils
-│       └── knn.py
-├── Dockerfile
-├── LICENSE
-├── README.md
-├── requirements.txt
-└── vector-db-engine-chart
-    ├── Chart.yaml
-    ├── charts
-    ├── templates
-    │   ├── _helpers.tpl
-    │   ├── deployment.yaml
-    │   └── service.yaml
-    └── values.yaml
+app/
+ ├ routers/         # HTTP layer: one APIRouter per resource
+ ├ services/        # Business logic: CRUD, search orchestration
+ ├ store/           # In-memory data store with thread-safety
+ ├ utils/           # Pure-algorithm code (kNN)
+ └ models/          # Pydantic schemas (Base/Create/Update/Read)
+
+- Routers only parse/validate and call services.
+- Services enforce invariants, call store & utils.
+- Store manages raw state under a single RLock.
+- Utils hold algorithms that can be swapped out (e.g. brute-force ↔ ball-tree).
+
+## In-Memory Store & Concurrency
+- Single Python process with store/in_memory.py.
+- All write operations (save_*, attach_*, remove_*) wrapped in a module-level RLock.
+- Atomic multi-step operations (e.g. save+attach) exposed as single store methods.
+- Trade-off: simple PoC, but a real deployment needs a persistent, distributed store.
+
+
+## Pydantic Models & Validation
+- Base / Create / Update / Read variants per resource:
+   - LibraryBase → LibraryCreate → Library (with id)
+   - DocumentBase → DocumentCreate → Document (with id, library_id)
+   - ChunkBase → ChunkCreate → Chunk (with id, library_id, document_id)
+
+- orm_mode = True on Read models for easy ORM integration later.
+- conlist(float, min_items=1) to enforce non-empty embeddings.
+- New TextSearchRequest for routes that accept raw text and embed it server-side.
+
+## Service Layer
+- Keeps routers thin: service functions return/accept Pydantic models directly.
+- .model_dump(exclude_none=True) + .model_copy(update=…) for partial updates.
+- Raises KeyError on missing resources → routers map to 404 Not Found.
+
+
+## Search Algorithms
+- Brute-Force kNN (utils/knn.py):
+  - Score all candidates, full sort, slice top-k.
+  - Complexity: O(N·d + N log N). Great for N ≲ 10 000.
+
+- VP-Tree (Ball-Tree):
+    - build_vptree partitions points by median radius around a vantage point.
+    - vptree_knn prunes branches whose balls cannot improve the top-k.
+    - Build: O(N log N). Query: ≈ O(log N) for moderate dims (d ≲ 200).
+- Algorithm Dispatch in _run_knn: clients choose "brute" or "vptree" via SearchRequest.algorithm.
+
+## Error Handling & HTTP Semantics
+- 404 for missing libraries/documents/chunks.
+- 422 for invalid UUIDs, missing required fields.
+- Clear use of status_code, response_model, and HTTPException.
+
+
+## Trade-offs & Future Work
+- In-memory store → trivial but ephemeral. Next step: Redis or SQL (SQLAlchemy).
+- Single-process → simple locking, but limited scale. Future: leader-follower or sharding.
+- Search → brute-force then VP-Tree; later introduction of approximate methods (HNSW) for massive dims.
+- Embedding → synchronous calls to Cohere; consider async / batched / cached strategies for high throughput
