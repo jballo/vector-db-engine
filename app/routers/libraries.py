@@ -121,6 +121,7 @@ async def search_library(
             k=payload.k,
             metric=payload.metric,
             metadata_filter=payload.filter,
+            algorithm=payload.algorithm
         )
     except KeyError:
         raise HTTPException(

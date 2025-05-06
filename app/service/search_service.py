@@ -2,8 +2,9 @@ from uuid import uuid4, UUID
 from typing import List, Tuple, Callable
 from ..models.search import SearchResult
 from ..store.in_memory import list_all_chunks_in_library, list_chunks
-from ..utils.knn import brute_force_knn, cosine_similarity, l2_distance
+from ..utils.knn import brute_force_knn, cosine_similarity, l2_distance, build_vptree, vptree_knn
 from ..models.chunk import Chunk
+
 
 
 def search_library_service(
@@ -12,12 +13,13 @@ def search_library_service(
     k: int,
     metric: str = "cosine",
     metadata_filter: dict = None,
+    algorithm: str = "brute",
 ) -> List[SearchResult]:
     candidates = list_all_chunks_in_library(library_id)
     if not candidates:
         return []
     
-    return _run_knn(candidates, query_embedding, k, metric, metadata_filter)
+    return _run_knn(candidates, query_embedding, k, metric, metadata_filter, algorithm)
 
 
 def search_document_service(
@@ -27,13 +29,14 @@ def search_document_service(
     k: int,
     metric: str = "cosine",
     metadata_filter: dict = None,
+    algorithm: str = "brute",
 ) -> List[SearchResult]:
     candidates = list_chunks(library_id, document_id)
     print("candidates: ", candidates)
     if not candidates:
         return []
     
-    return _run_knn(candidates, query_embedding, k, metric, metadata_filter)
+    return _run_knn(candidates, query_embedding, k, metric, metadata_filter, algorithm)
 
 
 def _run_knn(
@@ -42,6 +45,7 @@ def _run_knn(
     k: int,
     metric: str,
     metadata_filter: dict = None,
+    algorithm: str = "brute",
 ) -> List[SearchResult]:
     # exact match metadata filter
     # if metadata_filter:
@@ -54,8 +58,20 @@ def _run_knn(
 
     prepared = [(chunk.id, chunk.embedding, chunk) for chunk in chunks]
 
-    raw_hits = brute_force_knn(query_embedding, prepared, k, metric_fn)
-    print("raw_hits: ", raw_hits)
+    # raw_hits = brute_force_knn(query_embedding, prepared, k, metric_fn)
+    # print("raw_hits: ", raw_hits)
+
+    # dispatch on algorithm
+    raw_hits = []
+    if algorithm == "vptree":
+        print("Vptree")
+        tree = build_vptree(prepared, metric_fn)
+        raw_hits = vptree_knn(tree, query_embedding, k, metric_fn)
+    else:
+        print("brute force")
+        raw_hits = brute_force_knn(
+            query_embedding, prepared, k, metric_fn
+        )
 
     return [
         SearchResult(chunk=chunk, score=score)

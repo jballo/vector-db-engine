@@ -25,6 +25,9 @@ class SearchRequest(BaseModel):
         None,
         description=("Optional metadata filter: only consider chunks whose metadata dict contains these key/value pairs")
     )
+    algorithm: Literal["brute", "vptree"] = Field(
+        "brute", description="Search algorithm to use"
+    )
 
     @model_validator(mode="after")
     def ensure_filter_keys_are_str(cls, model):

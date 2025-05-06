@@ -129,6 +129,7 @@ async def search_document(
             k=payload.k,
             metric=payload.metric,
             metadata_filter=payload.filter,
+            algorithm=payload.algorithm
         )
     except KeyError as e:
         raise HTTPException(
