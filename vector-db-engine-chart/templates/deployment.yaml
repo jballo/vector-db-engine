@@ -29,5 +29,10 @@ spec:
                 secretKeyRef:
                   name: {{ include "vector-db-engine.fullname" . }}-secret
                   key: API_KEY  
+            - name: COHERE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vector-db-engine.fullname" . }}-secret
+                  key: COHERE_KEY  
           {{- end }}
 
