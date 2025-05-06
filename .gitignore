@@ -172,3 +172,27 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+
+
+#######################
+# Docker artifacts
+#######################
+# (you should version-control your Dockerfile, but
+#  ignore any local Compose overrides or env files)
+docker-compose.override.yml
+docker-compose.*.yml
+
+#######################
+# Helm artifacts
+#######################
+# ignore any packaged chart archives
+*.tgz
+# if you run `helm dependency update` and don’t
+# want to check in those chart deps, uncomment:
+# vector-db-engine-chart/charts/
+
+#######################
+# Logs
+#######################
+*.log
