@@ -10,7 +10,7 @@ from ..models.search import SearchRequest, SearchResult
 
 from ..service.library_service import create_library_service, list_libraries_service, get_library_service, update_library_service, delete_library_service
 
-from ..service.search_service import search_library
+from ..service.search_service import search_library_service
 from ..config import Config
 
 import cohere
@@ -115,7 +115,7 @@ async def search_library(
         embedding = response.embeddings.float_[0]
         payload.query_embedding = embedding
 
-        return search_library(
+        return search_library_service(
             library_id=library_id,
             query_embedding=payload.query_embedding,
             k=payload.k,

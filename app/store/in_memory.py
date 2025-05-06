@@ -80,11 +80,15 @@ def get_chunk(chunk_id: UUID) -> Optional[Chunk]:
     
 def list_chunks(library_id: UUID, document_id: UUID) -> List[Chunk]:
     with _lock:
-        return [
-            chunk 
-            for chunk in _chunks.values()
-            if chunk.library_id == library_id and chunk.document_id == document_id
-        ]
+        result = []
+        for chunk in _chunks.values():
+            print("chunk id: ", chunk.library_id)
+            print("chunk document id: ", chunk.document_id)
+            if chunk.library_id == library_id and chunk.document_id == document_id:
+                result.append(chunk)
+
+        print("result: ", result)
+        return result
     
 def delete_chunk(chunk_id: UUID) -> None:
     with _lock:
