@@ -3,6 +3,12 @@ from typing import List
 from uuid import uuid4, UUID
 from ..models.chunk import Chunk, ChunkCreate, ChunkUpdate
 from ..service.chunk_service import create_chunk_service, list_chunks_service, get_chunk_service, update_chunk_service, delete_chunk_service
+from ..config import Config
+
+import cohere
+
+CO_API_KEY = Config.COHERE_KEY
+co = cohere.ClientV2(api_key=CO_API_KEY)
 
 router = APIRouter(
     prefix="/{document_id}/chunks",
@@ -24,6 +30,15 @@ async def create_chunk(
     payload: ChunkCreate = Body(..., description="text + embedding + metadata"),
 ) -> Chunk:
         try:
+             text = payload.text
+             response = co.embed(
+                  texts=[text],
+                  model="embed-v4.0",
+                  input_type="classification",
+                  embedding_types=["float"]
+             )
+             embedding = response.embeddings.float_[0]
+             payload.embedding = embedding
              return create_chunk_service(library_id, document_id, payload)
         except KeyError:
              raise HTTPException("Parent library or document not found")

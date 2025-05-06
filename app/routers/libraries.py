@@ -11,6 +11,12 @@ from ..models.search import SearchRequest, SearchResult
 from ..service.library_service import create_library_service, list_libraries_service, get_library_service, update_library_service, delete_library_service
 
 from ..service.search_service import search_library
+from ..config import Config
+
+import cohere
+
+CO_API_KEY = Config.COHERE_KEY
+co = cohere.ClientV2(api_key=CO_API_KEY)
 
 
 router = APIRouter(
@@ -99,6 +105,16 @@ async def search_library(
 ) -> List[SearchResult]:
     """top-k most similar chunks within the given library"""
     try:
+        text = payload.text
+        response = co.embed(
+            texts=[text],
+            model="embed-v4.0",
+            input_type="classification",
+            embedding_types=["float"]
+        )
+        embedding = response.embeddings.float_[0]
+        payload.query_embedding = embedding
+
         return search_library(
             library_id=library_id,
             query_embedding=payload.query_embedding,

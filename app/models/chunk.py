@@ -6,9 +6,9 @@ from pydantic import BaseModel, Field, conlist
 
 class ChunkBase(BaseModel):
     text: str = Field(..., description="Raw text of this chunk")
-    embedding: conlist(  # type: ignore
+    embedding: Optional[conlist(  # type: ignore
         float, min_length=1
-    ) = Field(..., description="Embedding vector")
+    )] = Field(None, description="Embedding vector")
     metadata: Dict[str, Any] = Field(
         default_factory=dict, description="Arbitrary chunk metadata"
     )

@@ -8,6 +8,13 @@ from ..service.document_service import create_document_service, list_documents_s
 
 from ..service.search_service import search_document
 
+from ..config import Config
+
+import cohere
+
+CO_API_KEY = Config.COHERE_KEY
+co = cohere.ClientV2(api_key=CO_API_KEY)
+
 router = APIRouter(
     prefix="/{library_id}/documents",
     tags=["chunks"],
@@ -105,6 +112,16 @@ async def search_document(
 ) -> List[SearchResult]:
     """top-k most similar chunks within a specific document"""
     try:
+        text = payload.text
+        response = co.embed(
+            texts=[text],
+            model="embed-v4.0",
+            input_type="classification",
+            embedding_types=["float"]
+        )
+        embedding = response.embeddings.float_[0]
+        payload.query_embedding = embedding
+
         return search_document(
             library_id=library_id,
             document_id=document_id,
