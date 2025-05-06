@@ -7,7 +7,7 @@ from ..models.document import Document
 from ..models.chunk import Chunk
 
 
-# ----------------- in-memory key/value store ------------------
+# ----------------- in-memory key/value ------------------
 _lock = RLock()
 _libraries: Dict[UUID, Library] = {}
 _documents: Dict[UUID, Document] = {}
