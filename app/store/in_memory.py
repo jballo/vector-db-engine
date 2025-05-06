@@ -124,9 +124,3 @@ def remove_chunk_from_document(
         if chunk_id in doc.chunk_ids:
             doc.chunk_ids.remove(chunk_id)
             _documents[document_id] = doc
-
-
-
-def list_all_chunks_in_library(library_id: UUID) -> List[Chunk]:
-    with _lock:
-        return [c for c in _chunks.values() if c.library_id == library_id]
