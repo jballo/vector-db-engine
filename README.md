@@ -173,7 +173,7 @@ We inject the API key at runtime via a pre-created Kubernetes Secret.
     ```
 
 
-## Project Structure
+## Project Structure and Architecture
 ```text
 app/
 ├── routers/         # HTTP layer: one APIRouter per resource
@@ -181,6 +181,72 @@ app/
 ├── store/           # In-memory data store with thread-safety
 ├── utils/           # Pure-algorithm code (kNN)
 └── models/          # Pydantic schemas (Base/Create/Update/Read)
+```
+
+```text
++-------------------------------------------------------------+
+|                        Client (User)                        |
++--------------------------+----------------------------------+
+                           |
+                           v
++-------------------------------------------------------------+
+|                        FastAPI Routers                      |
+|  - /libraries                                               |
+|  - /{library_id}/documents                                  |
+|  - /{document_id}/chunks                                    |
+|  - /health                                                  |
++--------------------------+----------------------------------+
+                           |
+                           v
++-------------------------------------------------------------+
+|                      Service Layer                          |
+|  - library_service.py                                       |
+|  - document_service.py                                      |
+|  - chunk_service.py                                         |
+|  - search_service.py                                        |
+|  (Business logic, validation, orchestration)                |
++--------------------------+----------------------------------+
+                           |
+                           v
++-------------------------------------------------------------+
+|                    In-Memory Store (store/in_memory.py)     |
+|  - _libraries: Dict[UUID, Library]                          |
+|  - _documents: Dict[UUID, Document]                         |
+|  - _chunks: Dict[UUID, Chunk]                               |
+|  - Thread-safe with RLock                                   |
++--------------------------+----------------------------------+
+                           |
+                           v
++-------------------------------------------------------------+
+|                        Models (Pydantic)                    |
+|  - Library, LibraryCreate, LibraryUpdate                    |
+|  - Document, DocumentCreate, DocumentUpdate                 |
+|  - Chunk, ChunkCreate, ChunkUpdate                          |
+|  - SearchRequest, SearchResult                              |
++--------------------------+----------------------------------+
+                           |
+                           v
++-------------------------------------------------------------+
+|                        Utils (utils/knn.py)                 |
+|  - Brute-force kNN search                                   |
+|  - VP-Tree search                                           |
+|  - Distance metrics (cosine, L2)                            |
++--------------------------+----------------------------------+
+                           |
+                           v
++-------------------------------------------------------------+
+|                  External Embedding Service                 |
+|                  (Cohere API via cohere.Client)             |
++-------------------------------------------------------------+
+
+
+Data Flow:
+1. Client sends HTTP request (CRUD/search).
+2. FastAPI router parses/validates, calls service.
+3. Service layer enforces invariants, calls store/utils.
+4. Store manages in-memory state (thread-safe).
+5. For search, utils/knn.py runs kNN on chunk embeddings.
+6. For embedding, Cohere API is called as needed.
 ```
 
 - Routers only parse/validate and call services.
