@@ -8,6 +8,10 @@ from .documents import router as documents_router
 from ..models.library import Library, LibraryCreate, LibraryUpdate
 from ..models.search import SearchRequest, SearchResult
 
+from ..service.library_service import create_library_service, list_libraries_service, get_library_service, update_library_service, delete_library_service
+
+from ..service.search_service import search_library
+
 
 router = APIRouter(
     prefix="/libraries",
@@ -17,10 +21,6 @@ router = APIRouter(
 )
 
 router.include_router(documents_router)
-
-
-# simple in-memory store
-_fake_db: List[Library] = []
 
 @router.post(
     "",
@@ -33,9 +33,7 @@ async def create_library(
         ..., description="Name + metadata for the new library"
     ),
 ) -> Library:  
-    lib = Library(id=uuid4(), **payload.model_dump())
-    _fake_db.append(lib)
-    return lib
+    return create_library_service(payload)
 
 
 @router.get(
@@ -45,7 +43,7 @@ async def create_library(
     summary="List all Libraries",
 )
 async def list_libraries() -> List[Library]:
-    return _fake_db
+    return list_libraries_service()
 
 
 @router.get(
@@ -55,10 +53,10 @@ async def list_libraries() -> List[Library]:
     summary="Get a Library by ID",
 )
 async def get_library(library_id: UUID = Path(..., description="UUID of the library")) -> Library:
-    for lib in _fake_db:
-        if lib.id == library_id:
-            return lib
-    raise HTTPException(status_code=404, detail="Library not found")
+    try:
+        return get_library_service(library_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Library not found")
 
 
 @router.put(
@@ -73,26 +71,21 @@ async def update_library(
         ..., description="Fields to update (all optional)"
     ),
 ) -> Library:
-    for idx, lib in enumerate(_fake_db):
-        if lib.id == library_id:
-            updated = lib.model_copy(update=payload.model_dump(exclude_none=True))
-            _fake_db[idx] = updated
-            return updated
-    
-    raise HTTPException(status_code=404, detail="Library not found")
+    try:
+        return update_library_service(library_id, payload)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Library not found")
 
 @router.delete(
     "/{library_id}",
-    response_model=Library,
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a Library",
 )
-async def delete_library(library_id: UUID = Path(..., description="UUID of the library")) -> Library:
-    for idx, lib in enumerate(_fake_db):
-        if lib.id == library_id:
-            return _fake_db.pop(idx)
-    
-    raise HTTPException(status_code=404, detail="Library not found")
+async def delete_library(library_id: UUID = Path(..., description="UUID of the library")) -> None:
+    try:
+        delete_library_service(library_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Library not found")
 
 @router.post(
     "/{library_id}/search",
@@ -104,7 +97,20 @@ async def search_library(
     library_id: UUID = Path(..., description="UUID of the library"),
     payload: SearchRequest = Body(..., description="Search parameters"),
 ) -> List[SearchResult]:
-    return []
+    """top-k most similar chunks within the given library"""
+    try:
+        return search_library(
+            library_id=library_id,
+            query_embedding=payload.query_embedding,
+            k=payload.k,
+            metric=payload.metric,
+            metadata_filter=payload.filter,
+        )
+    except KeyError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Library {library_id} not found",
+        )
 
 
 

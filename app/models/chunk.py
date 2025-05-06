@@ -35,7 +35,7 @@ class Chunk(ChunkBase):
     """
     id: UUID = Field(..., description="Unique chunk identifier")
     library_id: UUID = Field(..., description="Parent library ID")
-    document_id: Optional[UUID] = Field(
+    document_id: UUID = Field(
         None, description="Optional parent document ID"
     )
 

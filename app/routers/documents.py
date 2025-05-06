@@ -4,6 +4,9 @@ from uuid import uuid4, UUID
 from .chunks import router as chunks_router
 from ..models.document import Document, DocumentCreate, DocumentUpdate
 from ..models.search import SearchRequest, SearchResult
+from ..service.document_service import create_document_service, list_documents_service, get_document_service, update_document_service, delete_document_service
+
+from ..service.search_service import search_document
 
 router = APIRouter(
     prefix="/{library_id}/documents",
@@ -13,7 +16,7 @@ router = APIRouter(
 router.include_router(chunks_router)
 
 # simple in-memory store
-_fake_db: List[Document] = []
+# _fake_db: List[Document] = []
 
 @router.post(
     "",
@@ -25,9 +28,10 @@ async def create_document(
     library_id: UUID = Path(..., description="UUI of the library"),
     payload: DocumentCreate = Body(..., description="Metadata + Chunk ids")
 ) -> Document:
-    doc = Document(id=uuid4(), library_id=library_id, **payload.model_dump())
-    _fake_db.append(doc)
-    return doc
+    try:
+        return create_document_service(library_id,  payload)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Chunk not found in library")
 
 @router.get(
     "",
@@ -38,8 +42,10 @@ async def create_document(
 async def list_documents(
     library_id: UUID = Path(..., description="UUID of the library")
 ) -> List[Document]:
-    docs = [doc for doc in _fake_db if doc.library_id == library_id]
-    return docs
+    try:
+        return list_documents_service(library_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Library not found")
 
 @router.get(
     "/{document_id}",
@@ -51,11 +57,10 @@ async def get_document(
     library_id: UUID = Path(..., description="UUID of the library"), 
     document_id: UUID = Path(..., description="UUID of the document"),
 ) -> Document:
-    for doc in _fake_db:
-        if doc.library_id == library_id and doc.id == document_id:
-            return doc
-    
-    raise HTTPException(status=404, detail="Document not found")
+    try:
+        return get_document_service(library_id, document_id)
+    except:
+        raise HTTPException(status=404, detail="Document not found")
 
 @router.put(
     "/{document_id}",
@@ -68,29 +73,24 @@ async def update_document(
     document_id: UUID = Path(..., description="UUID of the document"),
     payload: DocumentUpdate = Body(..., description="Field to update (all optional)"),
 ) -> Document:
-    for idx, doc in enumerate(_fake_db):
-        if doc.library_id == library_id and doc.id == document_id:
-            updated = doc.model_copy(update=payload.model_dump(exclude_none=True))
-            _fake_db[idx] = updated
-            return updated
-        
-    raise HTTPException(status_code=404, detail="Document not found")
+    try:
+        return update_document_service(library_id, document_id, payload)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Document and/or chunk not found")
 
 @router.delete(
     "/{document_id}",
-    response_model=Document,
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a document",
 )
 async def delete_document(
     library_id: UUID = Path(..., description="UUID of the library"), 
     document_id: UUID = Path(..., description="UUID of the document"),
-) -> Document:
-    for idx, doc in enumerate(_fake_db):
-        if doc.library_id == library_id and doc.id == document_id:
-            return _fake_db.pop(idx)
-        
-    raise HTTPException(status_code=404, detail="Document not found")
+) -> None:
+    try:
+        delete_document_service(library_id, document_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Document not found")
 
 @router.post(
     "/{document_id}/search",
@@ -103,4 +103,18 @@ async def search_document(
     document_id: UUID = Path(..., description="UUID of the document"),
     payload: SearchRequest = Body(..., description="Search parameters")
 ) -> List[SearchResult]:
-    return []
+    """top-k most similar chunks within a specific document"""
+    try:
+        return search_document(
+            library_id=library_id,
+            document_id=document_id,
+            query_embedding=payload.query_embedding,
+            k=payload.k,
+            metric=payload.metric,
+            metadata_filter=payload.filter,
+        )
+    except KeyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
