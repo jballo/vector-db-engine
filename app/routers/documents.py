@@ -6,6 +6,8 @@ from ..models.document import Document, DocumentCreate, DocumentUpdate
 from ..models.search import SearchRequest, SearchResult
 from ..service.document_service import create_document_service, list_documents_service, get_document_service, update_document_service, delete_document_service
 
+from ..service.search_service import search_document
+
 router = APIRouter(
     prefix="/{library_id}/documents",
     tags=["chunks"],
@@ -101,4 +103,18 @@ async def search_document(
     document_id: UUID = Path(..., description="UUID of the document"),
     payload: SearchRequest = Body(..., description="Search parameters")
 ) -> List[SearchResult]:
-    return []
+    """top-k most similar chunks within a specific document"""
+    try:
+        return search_document(
+            library_id=library_id,
+            document_id=document_id,
+            query_embedding=payload.query_embedding,
+            k=payload.k,
+            metric=payload.metric,
+            metadata_filter=payload.filter,
+        )
+    except KeyError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )

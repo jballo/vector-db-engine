@@ -10,6 +10,8 @@ from ..models.search import SearchRequest, SearchResult
 
 from ..service.library_service import create_library_service, list_libraries_service, get_library_service, update_library_service, delete_library_service
 
+from ..service.search_service import search_library
+
 
 router = APIRouter(
     prefix="/libraries",
@@ -95,7 +97,20 @@ async def search_library(
     library_id: UUID = Path(..., description="UUID of the library"),
     payload: SearchRequest = Body(..., description="Search parameters"),
 ) -> List[SearchResult]:
-    return []
+    """top-k most similar chunks within the given library"""
+    try:
+        return search_library(
+            library_id=library_id,
+            query_embedding=payload.query_embedding,
+            k=payload.k,
+            metric=payload.metric,
+            metadata_filter=payload.filter,
+        )
+    except KeyError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Library {library_id} not found",
+        )
 
 
 
