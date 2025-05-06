@@ -51,7 +51,8 @@ helm version
 
 2. Set your API key
     ```bash
-    export API_KEY=superSecretKey
+    export API_KEY=<uuigen generated key>
+    export COHERE_KEY=<cohere key from platform>
     ```
 
 3. Run the FastAPI app locally
@@ -87,6 +88,7 @@ helm version
     ```bash
     docker run --rm \
     -e API_KEY=$API_KEY \
+    -e COHERE_KEY=$COHERE_KEY \
     -p 8000:8000 \
     $IMAGE:$TAG
     ```
