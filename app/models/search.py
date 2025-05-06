@@ -1,11 +1,14 @@
 from uuid import UUID
 from typing import List, Literal, Dict, Any, Optional
-from pydantic import BaseModel, Field, model_validator, ValidationError, conlist
+from pydantic import BaseModel, Field, model_validator, ValidationError, conlist, constr
 from .chunk import Chunk
 from .library import Library
 
 class SearchRequest(BaseModel):
     """Paylod for a kNN search"""
+    text: constr(min_length=1) = Field( # type: ignore
+        ..., description="Query text to embed and search"
+    )
     query_embedding: conlist(
         float, min_length=1 # type: ignore
     ) = Field(..., description="Embedding vector search with (Non-empty list of floats)")

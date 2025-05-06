@@ -6,7 +6,14 @@ from ..models.document import Document, DocumentCreate, DocumentUpdate
 from ..models.search import SearchRequest, SearchResult
 from ..service.document_service import create_document_service, list_documents_service, get_document_service, update_document_service, delete_document_service
 
-from ..service.search_service import search_document
+from ..service.search_service import search_document_service
+
+from ..config import Config
+
+import cohere
+
+CO_API_KEY = Config.COHERE_KEY
+co = cohere.ClientV2(api_key=CO_API_KEY)
 
 router = APIRouter(
     prefix="/{library_id}/documents",
@@ -105,7 +112,17 @@ async def search_document(
 ) -> List[SearchResult]:
     """top-k most similar chunks within a specific document"""
     try:
-        return search_document(
+        text = payload.text
+        response = co.embed(
+            texts=[text],
+            model="embed-v4.0",
+            input_type="classification",
+            embedding_types=["float"]
+        )
+        embedding = response.embeddings.float_[0]
+        payload.query_embedding = embedding
+
+        return search_document_service(
             library_id=library_id,
             document_id=document_id,
             query_embedding=payload.query_embedding,
