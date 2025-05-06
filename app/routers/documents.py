@@ -120,12 +120,11 @@ async def search_document(
             embedding_types=["float"]
         )
         embedding = response.embeddings.float_[0]
-        payload.query_embedding = embedding
 
         return search_document_service(
             library_id=library_id,
             document_id=document_id,
-            query_embedding=payload.query_embedding,
+            query_embedding=embedding,
             k=payload.k,
             metric=payload.metric,
             algorithm=payload.algorithm
