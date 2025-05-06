@@ -17,7 +17,7 @@ co = cohere.ClientV2(api_key=CO_API_KEY)
 
 router = APIRouter(
     prefix="/{library_id}/documents",
-    tags=["chunks"],
+    tags=["documents"],
 )
 
 router.include_router(chunks_router)
