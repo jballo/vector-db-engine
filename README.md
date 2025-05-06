@@ -172,12 +172,14 @@ We inject the API key at runtime via a pre-created Kubernetes Secret.
 
 
 ## Project Structure
+```text
 app/
- ├ routers/         # HTTP layer: one APIRouter per resource
- ├ services/        # Business logic: CRUD, search orchestration
- ├ store/           # In-memory data store with thread-safety
- ├ utils/           # Pure-algorithm code (kNN)
- └ models/          # Pydantic schemas (Base/Create/Update/Read)
+├── routers/         # HTTP layer: one APIRouter per resource
+├── services/        # Business logic: CRUD, search orchestration
+├── store/           # In-memory data store with thread-safety
+├── utils/           # Pure-algorithm code (kNN)
+└── models/          # Pydantic schemas (Base/Create/Update/Read)
+```
 
 - Routers only parse/validate and call services.
 - Services enforce invariants, call store & utils.
