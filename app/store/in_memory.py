@@ -97,3 +97,26 @@ def list_all_chunks_in_library(library_id: UUID) -> List[Chunk]:
             for chunk in _chunks.values()
             if chunk.library_id == library_id
         ]
+
+
+def add_chunk_to_document(
+    chunk: Chunk, document_id: UUID
+) -> None:
+    with _lock:
+        _chunks[chunk.id] = chunk
+        doc = _documents[document_id]
+        doc.chunk_ids.append(chunk.id)
+        _documents[document_id] = doc
+
+
+def remove_chunk_from_document(
+    chunk_id: UUID, document_id: UUID
+) -> None:
+    with _lock:
+        # remove the chunk record
+        _chunks.pop(chunk_id, None)
+        # remove the reference in the document
+        doc = _documents[document_id]
+        if chunk_id in doc.chunk_ids:
+            doc.chunk_ids.remove(chunk_id)
+            _documents[document_id] = doc
