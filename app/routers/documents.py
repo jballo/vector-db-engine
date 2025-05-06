@@ -17,7 +17,7 @@ co = cohere.ClientV2(api_key=CO_API_KEY)
 
 router = APIRouter(
     prefix="/{library_id}/documents",
-    tags=["chunks"],
+    tags=["documents"],
 )
 
 router.include_router(chunks_router)
@@ -128,7 +128,7 @@ async def search_document(
             query_embedding=payload.query_embedding,
             k=payload.k,
             metric=payload.metric,
-            metadata_filter=payload.filter,
+            algorithm=payload.algorithm
         )
     except KeyError as e:
         raise HTTPException(
