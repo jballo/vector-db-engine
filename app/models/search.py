@@ -9,9 +9,6 @@ class SearchRequest(BaseModel):
     text: constr(min_length=1) = Field( # type: ignore
         ..., description="Query text to embed and search"
     )
-    query_embedding: conlist(
-        float, min_length=1 # type: ignore
-    ) = Field(..., description="Embedding vector search with (Non-empty list of floats)")
     k: int = Field(
         ...,
         gt=0,
@@ -21,33 +18,9 @@ class SearchRequest(BaseModel):
         "cosine",
         description="Distance metric to use",
     )
-    filter: Optional[Dict[str, Any]] = Field(
-        None,
-        description=("Optional metadata filter: only consider chunks whose metadata dict contains these key/value pairs")
-    )
     algorithm: Literal["brute", "vptree"] = Field(
         "brute", description="Search algorithm to use"
     )
-
-    @model_validator(mode="after")
-    def ensure_filter_keys_are_str(cls, model):
-        """Runs after fields are parsed. Enforces that all filter-keys are str"""
-        if model.filter is not None:
-            bad = [k for k in model.filter if not isinstance(k, str)]
-            if bad:
-                raise ValidationError(
-                    [
-                        {
-                            "loc": ("filter",),
-                            "msg": f"filter keys must be strings, "
-                                   f"got {bad!r}",
-                            "type": "value_error",
-                        }
-                    ],
-                    model=cls,
-                )
-        
-        return model
 
 
 class SearchResult(BaseModel):

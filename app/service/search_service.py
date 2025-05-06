@@ -44,12 +44,6 @@ def _run_knn(
     metric: str,
     algorithm: str = "brute",
 ) -> List[SearchResult]:
-    # exact match metadata filter
-    # if metadata_filter:
-    #     chunks = [
-    #         chunk for chunk in chunks
-    #         if all(c.metadata.get(k_) == v_ for k_, v_ in metadata_filter.items())
-    #     ]
 
     metric_fn: Callable = cosine_similarity if metric == "cosine" else l2_distance
 
